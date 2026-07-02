@@ -193,6 +193,39 @@ All notable changes to this project will be documented in this file.
 - Verified tracked environment examples use placeholder-only values.
 - Added no hardcoded real API keys or secrets.
 
+## v1.4.1 - Stabilization & UX Audit Release
+
+### Added
+- Global Shortcut Hook (`useGlobalShortcuts.ts`) and navigation helper modal (e.g., `g` then `d` for Dashboard).
+- Global Toast notification store and frontend overlay for system error/success reporting.
+- System Health Maintenance dashboard settings controls for inspecting state details.
+- React Suspense lazy loading boundaries for heavy path imports.
+
+### Changed
+- Rebuilt popstate router enabling public landing pages (`/`, `/landing`, `/portfolio`) to bypass primary AppShell rendering logic.
+- Redesigned cinematic landing page layout featuring modules showcases, tech stack grids, and recruitment calls to action.
+- Replaced floating canvas background with an elegant static HSL dark gradient and grid alignment system.
+- Shayla AI Chat styling to stabilize viewport scrolling heights, rendering model latency benchmarks, and active tokens.
+
+### Fixed
+- Input XSS injection vulnerabilities by enforcing sanitizers across all dynamic markdown output terminals.
+- Collapsible Daily Briefing summaries height overlaps.
+- German academy checklist drawers, mock interview telemetry widgets, and status calendars.
+
+## v1.1 - AI Integration & German Academy Launch
+
+### Added
+- German Academy module loaded with 30 structured lessons, quizzes, vocabulary indices, notes, and Shayla support.
+- Unified AI Mentor (Shayla AI) across 8 workspaces.
+- Stable Groq API server-side reverse-proxy streaming tokens back to the webapp.
+
+### Changed
+- Refined career roadmap dataset filtering algorithms referencing 180 distinct preparation steps.
+- Cleaned data layout interfaces for DSA patterns and SkillRack trackers.
+
+### Fixed
+- Settings check sync errors and prototype contamination false-positive checks.
+
 ## [1.0.0] - 2026-06-28
 ### Added
 - Complete React + TypeScript frontend application with modular component viewports.
