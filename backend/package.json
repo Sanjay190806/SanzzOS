@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node build/server.js",
     "dev": "tsx watch src/server.ts",
     "prisma:generate": "prisma generate",
