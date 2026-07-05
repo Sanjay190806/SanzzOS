@@ -21,8 +21,10 @@ import cloudSyncRoutes from './routes/cloudSync.routes.js';
 
 const app = express();
 
+const cleanFrontendUrl = env.FRONTEND_URL.replace(/\/$/, '');
 const allowedOrigins = [
-  env.FRONTEND_URL,
+  cleanFrontendUrl,
+  `${cleanFrontendUrl}/`,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:5174',
