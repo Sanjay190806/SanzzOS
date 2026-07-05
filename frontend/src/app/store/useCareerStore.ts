@@ -7,6 +7,7 @@ import { runAchievementEngine } from '../../utils/achievementEngine';
 import { useUIStore } from './useUIStore';
 import { getTodayDay, getDateForDay } from '../../utils/dateUtils';
 import { evaluateCompletion } from '../../utils/dailyCompletionUtils';
+import { getLevel } from '../../utils/xpUtils';
 import { TARGET_COMPANIES_DATA } from '../../data/companies';
 import { SKILL_TREE_DATA } from '../../data/skillTree';
 
@@ -838,7 +839,7 @@ export const useCareerStore = create<CareerState>()(
       }),
       awardXP: (amount) => set((state) => {
         const nextXp = state.xp + amount;
-        const nextLevel = Math.floor(nextXp / 500) + 1;
+        const nextLevel = getLevel(nextXp).level;
         return {
           xp: nextXp,
           level: nextLevel
@@ -852,10 +853,12 @@ export const useCareerStore = create<CareerState>()(
       merge: (persisted, current) => {
         const saved = persisted as any;
         const normalizedGerman = normalizeGermanState(saved);
+        const savedXp = typeof saved?.xp === 'number' ? saved.xp : current.xp;
         return {
           ...current,
           ...saved,
-          ...normalizedGerman
+          ...normalizedGerman,
+          level: getLevel(savedXp).level
         };
       }
     }

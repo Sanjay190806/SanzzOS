@@ -7,7 +7,6 @@ import { LeetCodeTaskCard } from '../components/today/LeetCodeTaskCard';
 import { DailyActivityCounter } from '../components/today/DailyActivityCounter';
 import { MoodEnergyPanel } from '../components/today/MoodEnergyPanel';
 import { DailyReflection } from '../components/today/DailyReflection';
-import { FocusTimer } from '../components/today/FocusTimer';
 import { SaveDayButton } from '../components/today/SaveDayButton';
 import { PomodoroTimer } from '../components/timer/PomodoroTimer';
 import { DailyQuestsCard } from '../components/today/DailyQuestsCard';
@@ -643,13 +642,11 @@ export const TodayPage: React.FC = () => {
           {/* Right Sidebar panels */}
           <div className="flex flex-col gap-6">
             {/* ⏱️ Cinematic Pomodoro Timer */}
-            <PomodoroTimer />
+            <PomodoroTimer onWorkSessionComplete={(minutes) => updateDailyLog(selectedDay, { focusMinutes: (currentLog.focusMinutes || 0) + minutes })} />
 
             {/* 🏆 Daily Quests Dashboard */}
             <DailyQuestsCard />
 
-            <FocusTimer onSessionComplete={(minutes) => updateDailyLog(selectedDay, { focusMinutes: (currentLog.focusMinutes || 0) + minutes })} />
-            
             <MoodEnergyPanel
               mood={currentLog.mood}
               energy={currentLog.energy}

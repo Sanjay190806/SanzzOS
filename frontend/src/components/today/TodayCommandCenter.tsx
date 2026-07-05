@@ -131,6 +131,50 @@ export const TodayCommandCenter: React.FC = () => {
     }
   };
 
+  const getAgendaCountUpdate = (task: { id: string; text: string; source: string }) => {
+    const text = task.text.toLowerCase();
+
+    if (task.id.startsWith('skillrack') || text.includes('skillrack')) {
+      return { key: 'skillrack' as const, value: 10 };
+    }
+
+    if (task.id.startsWith('apt') || text.includes('aptitude')) {
+      return { key: 'aptitude' as const, value: 30 };
+    }
+
+    if (task.id.startsWith('proj') || text.includes('project')) {
+      return { key: 'project' as const, value: 60 };
+    }
+
+    if (task.id.startsWith('german') || text.includes('german') || text.includes('vocabulary')) {
+      return { key: 'german' as const, value: text.includes('vocabulary') ? 15 : 20 };
+    }
+
+    if (task.id.startsWith('resume') || text.includes('resume') || text.includes('linkedin')) {
+      return { key: 'resume' as const, value: 1 };
+    }
+
+    return null;
+  };
+
+  const handleAgendaTaskToggle = (task: { id: string; text: string; completed: boolean; source: string }) => {
+    notificationStore.toggleAgendaTask(selectedDay, task.id);
+
+    if (task.completed) return;
+
+    const countUpdate = getAgendaCountUpdate(task);
+    if (!countUpdate) return;
+
+    const latestLog = useCareerStore.getState().dailyLogs[selectedDay] || currentLog;
+    const latestCounts = latestLog.counts || currentCounts;
+    updateDailyLog(selectedDay, {
+      counts: {
+        ...latestCounts,
+        [countUpdate.key]: Math.max(latestCounts[countUpdate.key] || 0, countUpdate.value),
+      },
+    });
+  };
+
   // 4. Checklists & completions
   const minDayQualified = useMemo(() => {
     const lcSolved = currentLog.lcStatus?.length || 0;
@@ -164,6 +208,8 @@ export const TodayCommandCenter: React.FC = () => {
   const handleRescueComplete = () => {
     // Complete rescue: set logs status to completed minimum and award XP
     const calculatedXP = 50; // Special streak protection reward XP
+    const previousXPForDay = currentLog.xpEarned || 0;
+    const xpDelta = calculatedXP - previousXPForDay;
     updateDailyLog(selectedDay, {
       status: 'completed',
       completionType: 'minimum',
@@ -173,11 +219,15 @@ export const TodayCommandCenter: React.FC = () => {
       savedAt: new Date().toISOString(),
     });
 
-    const newCumulativeXP = xp + calculatedXP;
-    setCareerState({
-      xp: newCumulativeXP,
-      level: getLevel(newCumulativeXP).level,
-    });
+    if (xpDelta !== 0) {
+      setCareerState((state) => {
+        const newCumulativeXP = Math.max(0, (state.xp || 0) + xpDelta);
+        return {
+          xp: newCumulativeXP,
+          level: getLevel(newCumulativeXP).level,
+        };
+      });
+    }
 
     notificationStore.addNotification({
       type: 'success',
@@ -234,6 +284,8 @@ export const TodayCommandCenter: React.FC = () => {
 
     const testLog: DailyLog = { ...currentLog, completionType: type, status: newStatus };
     const calculatedXP = awardXPForLog(selectedDay, testLog);
+    const previousXPForDay = currentLog.xpEarned || 0;
+    const xpDelta = calculatedXP - previousXPForDay;
 
     updateDailyLog(selectedDay, {
       status: newStatus,
@@ -243,11 +295,15 @@ export const TodayCommandCenter: React.FC = () => {
       savedAt: new Date().toISOString(),
     });
 
-    const newCumulativeXP = xp + calculatedXP;
-    setCareerState({
-      xp: newCumulativeXP,
-      level: getLevel(newCumulativeXP).level,
-    });
+    if (xpDelta !== 0) {
+      setCareerState((state) => {
+        const newCumulativeXP = Math.max(0, (state.xp || 0) + xpDelta);
+        return {
+          xp: newCumulativeXP,
+          level: getLevel(newCumulativeXP).level,
+        };
+      });
+    }
 
     // Launch Confetti and sound fanfare
     if (type === 'perfect') {
@@ -259,7 +315,7 @@ export const TodayCommandCenter: React.FC = () => {
     }
 
     // Set celebration details and show modal
-    setCelebrationDetails({ type, xp: calculatedXP });
+    setCelebrationDetails({ type, xp: Math.max(0, xpDelta) });
     setShowCelebrationModal(true);
   };
 
@@ -331,7 +387,7 @@ export const TodayCommandCenter: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={task.completed}
-                          onChange={() => notificationStore.toggleAgendaTask(selectedDay, task.id)}
+                          onChange={() => handleAgendaTaskToggle(task)}
                           className="rounded bg-black/45 border-white/5 text-accentBlue focus:ring-0 cursor-pointer"
                         />
                         <span className={`text-xs text-textSecondary ${task.completed ? 'line-through opacity-55 font-normal' : 'font-semibold text-textPrimary'}`}>

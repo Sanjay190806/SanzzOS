@@ -138,7 +138,7 @@ export const MiniStreakStrip: React.FC = () => {
 
   return (
     <Card 
-      className="p-5 border-purple-950/15 relative overflow-hidden"
+      className="p-5 border-purple-950/15 relative overflow-visible"
       style={{
         background: 'linear-gradient(135deg, rgba(15,0,30,0.7) 0%, rgba(5,5,15,0.7) 100%)',
         border: '1px solid rgba(168,85,247,0.1)'
@@ -166,8 +166,14 @@ export const MiniStreakStrip: React.FC = () => {
 
       {/* Grid container with centered layout & card size limitations */}
       <div className="flex flex-wrap gap-2 justify-start items-center relative z-10">
-        {days.map((day) => {
+        {days.map((day, index) => {
           const theme = STATUS_THEME[day.statusText] || STATUS_THEME['Future'];
+          const tooltipPosition =
+            index < 2
+              ? 'left-0 translate-x-0'
+              : index > days.length - 3
+                ? 'right-0 translate-x-0'
+                : 'left-1/2 -translate-x-1/2';
           
           return (
             <div
@@ -178,6 +184,7 @@ export const MiniStreakStrip: React.FC = () => {
                 bg-gradient-to-br ${theme.bg} ${theme.border} ${theme.glow}
                 hover:scale-108 hover:border-white/20
                 ${day.isToday ? 'outline-double outline-purple-400 outline-2 shadow-[0_0_15px_rgba(168,85,247,0.4)] z-20 scale-102' : ''}
+                hover:z-50
               `}
             >
               {/* Day Number */}
@@ -199,14 +206,14 @@ export const MiniStreakStrip: React.FC = () => {
               </span>
 
               {/* CSS Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 pointer-events-none bg-black/95 border border-purple-500/20 p-2.5 rounded-xl text-[9px] w-40 shadow-[0_0_20px_rgba(168,85,247,0.25)] leading-normal backdrop-blur-md">
-                <div className="flex justify-between items-center border-b border-white/5 pb-1">
-                  <span className="font-black text-white">Day {day.dayNum} ({day.dateStr})</span>
+              <div className={`absolute bottom-full ${tooltipPosition} mb-2 hidden group-hover:block z-[100] pointer-events-none bg-black/95 border border-purple-500/20 p-3 rounded-xl text-[9px] w-56 max-w-[min(14rem,calc(100vw-2rem))] shadow-[0_0_20px_rgba(168,85,247,0.25)] leading-normal backdrop-blur-md whitespace-normal`}>
+                <div className="flex items-start justify-between gap-2 border-b border-white/5 pb-1">
+                  <span className="font-black text-white leading-tight">Day {day.dayNum} ({day.dateStr})</span>
                   {day.isToday && <span className="text-[7px] font-black bg-purple-500/20 border border-purple-500/30 px-1 py-0.5 rounded text-purple-300 font-mono">TODAY</span>}
                 </div>
                 <span className={`font-black block mt-1 ${theme.text}`}>{day.statusText}</span>
                 <span className="text-yellow-400 font-bold block">+{day.xp} XP</span>
-                <span className="text-white/50 line-clamp-2 mt-1 leading-tight font-mono text-[8px]">{day.tasksText}</span>
+                <span className="text-white/60 block mt-1 leading-snug font-mono text-[8px] break-words">{day.tasksText}</span>
               </div>
             </div>
           );

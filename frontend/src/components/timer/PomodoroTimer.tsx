@@ -98,8 +98,12 @@ const TimerSettings: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
+interface PomodoroTimerProps {
+  onWorkSessionComplete?: (minutes: number) => void;
+}
+
 // ── Main Timer Component ───────────────────────────────────────────────────────
-export const PomodoroTimer: React.FC = () => {
+export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ onWorkSessionComplete }) => {
   const {
     mode, secondsLeft, isRunning, pomodoroCount,
     workDuration, shortBreakDuration, longBreakDuration, longBreakAfter,
@@ -109,6 +113,7 @@ export const PomodoroTimer: React.FC = () => {
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const warned5Ref = useRef(false);
+  const completedWorkCountRef = useRef(pomodoroCount);
   const [showSettings, setShowSettings] = useState(false);
 
   const totalDuration = mode === 'work' ? workDuration : mode === 'short_break' ? shortBreakDuration : longBreakDuration;
@@ -140,6 +145,13 @@ export const PomodoroTimer: React.FC = () => {
 
   // Reset warning flag when mode changes
   useEffect(() => { warned5Ref.current = false; }, [mode]);
+
+  useEffect(() => {
+    if (pomodoroCount > completedWorkCountRef.current) {
+      onWorkSessionComplete?.(Math.round(workDuration / 60));
+    }
+    completedWorkCountRef.current = pomodoroCount;
+  }, [pomodoroCount, workDuration, onWorkSessionComplete]);
 
   // ── SVG ring ──
   const RADIUS = 70;

@@ -48,7 +48,7 @@ const THEMES: Record<CinematicUniverse, {
 };
 
 export const FloatingActions: React.FC = () => {
-  const { dailyLogs, xp, updateDailyLog } = useCareerStore();
+  const { dailyLogs, updateDailyLog } = useCareerStore();
   const setCareerState = useCareerStore.setState;
   const { setActiveSection, currentDay } = useUIStore();
 
@@ -90,18 +90,23 @@ export const FloatingActions: React.FC = () => {
 
     // Calculate XP
     const earnedXP = awardXPForLog(currentDay, todayLog);
+    const previousXPForDay = todayLog.xpEarned || 0;
+    const xpDelta = earnedXP - previousXPForDay;
     updateDailyLog(currentDay, {
       xpEarned: earnedXP,
       savedAt: new Date().toISOString()
     });
 
-    const newXP = xp + earnedXP;
-    const newLvl = getLevel(newXP);
-
-    setCareerState({
-      xp: newXP,
-      level: newLvl.level
-    });
+    if (xpDelta !== 0) {
+      setCareerState((state) => {
+        const newXP = Math.max(0, (state.xp || 0) + xpDelta);
+        const newLvl = getLevel(newXP);
+        return {
+          xp: newXP,
+          level: newLvl.level
+        };
+      });
+    }
 
     setTimeout(() => {
       setSaving(false);
