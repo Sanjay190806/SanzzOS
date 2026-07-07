@@ -1,13 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { runMigrationForStore } from './migrations';
-import { DailyLog, ProblemLog, Project, ResumeProfile, CareerApplication, CompanyTarget, WeeklyReview, SavedChatSession } from '../../types';
+import { DailyCodingTaskId, DailyLog, ProblemLog, Project, ResumeProfile, CareerApplication, CompanyTarget, WeeklyReview, SavedChatSession } from '../../types';
 import { GermanDailyLog, GermanLessonProgress, GermanQuizHistoryItem, GermanVocabularyProgress, GermanLevel } from '../../types/german';
 import { runAchievementEngine } from '../../utils/achievementEngine';
 import { useUIStore } from './useUIStore';
 import { getTodayDay, getDateForDay } from '../../utils/dateUtils';
 import { evaluateCompletion } from '../../utils/dailyCompletionUtils';
 import { getLevel } from '../../utils/xpUtils';
+import {
+  DAILY_CODING_ACTIVE_TASK_IDS,
+  DAILY_CODING_BONUS_XP,
+  getDailyCodingCompletion,
+  normalizeDailyCodingState,
+  toLocalDateKey
+} from '../../utils/dailyCodingUtils';
 import { TARGET_COMPANIES_DATA } from '../../data/companies';
 import { SKILL_TREE_DATA } from '../../data/skillTree';
 
@@ -50,6 +57,7 @@ export interface CareerState {
   germanVocabularyReviewedToday: number;
   
   updateDailyLog: (day: number, log: Partial<DailyLog>) => void;
+  updateDailyCodingTask: (day: number, taskId: DailyCodingTaskId, updates: { count?: number; completed?: boolean }) => void;
   updateProblemLog: (key: string, log: Partial<ProblemLog>) => void;
   updateProject: (key: string, project: Partial<Project>) => void;
   updateResume: (resume: Partial<ResumeProfile>) => void;
@@ -309,6 +317,79 @@ export const useCareerStore = create<CareerState>()(
         const nextState = { ...state, dailyLogs: nextLogs };
         runAchievementEngine(nextState, set, (badge) => useUIStore.getState().setActiveBadge(badge));
         return { dailyLogs: nextLogs };
+      }),
+      updateDailyCodingTask: (day, taskId, updates) => set((state) => {
+        const existingLog = state.dailyLogs[day] || {
+          counts: { leetcode: 0, skillrack: 0, aptitude: 0, sql: 0, cscore: 0, german: 0, project: 0, resume: 0 },
+          lcStatus: [],
+          note: '',
+          mood: 3,
+          energy: 3,
+          distractions: 0,
+          focusMinutes: 0,
+          status: 'not_started',
+          savedAt: '',
+          xpEarned: 0
+        };
+        const dateKey = toLocalDateKey(getDateForDay(day, state.userProfile.startDate));
+        const dailyCoding = normalizeDailyCodingState(existingLog, dateKey);
+        const task = dailyCoding.tasks[taskId];
+        const requestedCount = updates.count ?? task.count;
+        const nextCount = Math.max(0, Math.min(task.target, Math.floor(requestedCount || 0)));
+        const nextCompleted = Boolean(updates.completed) || task.completed || nextCount >= task.target;
+        const finalCount = nextCompleted ? Math.max(nextCount, task.target) : nextCount;
+
+        dailyCoding.tasks[taskId] = {
+          ...task,
+          count: finalCount,
+          completed: nextCompleted
+        };
+
+        let xpDelta = 0;
+        if (dailyCoding.tasks[taskId].completed && !dailyCoding.tasks[taskId].xpAwarded) {
+          dailyCoding.tasks[taskId].xpAwarded = true;
+          xpDelta += dailyCoding.tasks[taskId].xp;
+        }
+
+        if (!dailyCoding.dailyCodingBonusAwarded && DAILY_CODING_ACTIVE_TASK_IDS.every((id) => dailyCoding.tasks[id].completed)) {
+          dailyCoding.dailyCodingBonusAwarded = true;
+          xpDelta += DAILY_CODING_BONUS_XP;
+        }
+
+        dailyCoding.activeDsaXp = dailyCoding.officialDsaStreakActive
+          ? Object.values(dailyCoding.tasks).reduce((sum, item) => sum + (item.xpAwarded ? item.xp : 0), 0) + (dailyCoding.dailyCodingBonusAwarded ? dailyCoding.dailyCodingBonusXp : 0)
+          : 0;
+
+        const nextCounts = {
+          ...existingLog.counts,
+          codechefJava: dailyCoding.tasks.codechef_java_daily.count,
+          skillrack: dailyCoding.tasks.skillrack_daily.count,
+          leetcode: dailyCoding.tasks.leetcode_daily.count
+        };
+
+        const updatedLog: DailyLog = {
+          ...existingLog,
+          counts: nextCounts,
+          dailyCoding,
+          xpEarned: (existingLog.xpEarned || 0) + xpDelta,
+          status: getDailyCodingCompletion(dailyCoding) ? 'completed' : existingLog.status,
+          savedAt: new Date().toISOString()
+        };
+        updatedLog.completionType = evaluateCompletion(updatedLog);
+
+        const nextXP = (state.xp || 0) + xpDelta;
+        const nextLogs = {
+          ...state.dailyLogs,
+          [day]: updatedLog
+        };
+        const nextState = { ...state, dailyLogs: nextLogs, xp: nextXP, level: getLevel(nextXP).level };
+        runAchievementEngine(nextState, set, (badge) => useUIStore.getState().setActiveBadge(badge));
+
+        return {
+          dailyLogs: nextLogs,
+          xp: nextXP,
+          level: getLevel(nextXP).level
+        };
       }),
       updateProblemLog: (key, log) => set((state) => {
         const nextLogs = {
@@ -848,7 +929,7 @@ export const useCareerStore = create<CareerState>()(
     }),
     {
       name: 'sanju-career-os-persist',
-      version: 142,
+      version: 143,
       migrate: (persistedState, version) => runMigrationForStore('sanju-career-os-persist', persistedState, version),
       merge: (persisted, current) => {
         const saved = persisted as any;

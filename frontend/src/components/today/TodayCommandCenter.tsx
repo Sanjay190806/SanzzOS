@@ -7,9 +7,11 @@ import { DailyLog } from '../../types';
 import { getDateForDay } from '../../utils/dateUtils';
 import { canUseFreeze, getFreezesLeftForWeek } from '../../utils/streakFreezeUtils';
 import { awardXPForLog, getLevel, getStreak } from '../../utils/xpUtils';
+import { getDailyCodingCompletion, normalizeDailyCodingState, toLocalDateKey } from '../../utils/dailyCodingUtils';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
+import { DailyCodingTargetPanel } from './DailyCodingTargetPanel';
 import {
   Flame,
   Snowflake,
@@ -29,6 +31,7 @@ export const TodayCommandCenter: React.FC = () => {
   const selectedDay = useDailyLogStore((s) => s.selectedDay);
   const dailyLogs = useCareerStore((s) => s.dailyLogs);
   const updateDailyLog = useCareerStore((s) => s.updateDailyLog);
+  const updateDailyCodingTask = useCareerStore((s) => s.updateDailyCodingTask);
   const useStreakFreeze = useCareerStore((s) => s.useStreakFreeze);
   const weeklyFreezeUsage = useCareerStore((s) => s.weeklyFreezeUsage || {});
   const xp = useCareerStore((s) => s.xp);
@@ -79,8 +82,9 @@ export const TodayCommandCenter: React.FC = () => {
   // 1. Filter scheduled events for today
   const todayDateStr = useMemo(() => {
     const d = getDateForDay(selectedDay, userProfile.startDate);
-    return d.toISOString().substring(0, 10);
+    return toLocalDateKey(d);
   }, [selectedDay, userProfile.startDate]);
+  const dailyCoding = useMemo(() => normalizeDailyCodingState(currentLog, todayDateStr), [currentLog, todayDateStr]);
 
   const todayEvents = useMemo(() => {
     return calendarEvents.filter((evt) => evt.start.substring(0, 10) === todayDateStr);
@@ -134,8 +138,12 @@ export const TodayCommandCenter: React.FC = () => {
   const getAgendaCountUpdate = (task: { id: string; text: string; source: string }) => {
     const text = task.text.toLowerCase();
 
+    if (task.id.startsWith('codechef-java') || text.includes('codechef')) {
+      return { key: 'codechefJava' as const, value: 5 };
+    }
+
     if (task.id.startsWith('skillrack') || text.includes('skillrack')) {
-      return { key: 'skillrack' as const, value: 10 };
+      return { key: 'skillrack' as const, value: 5 };
     }
 
     if (task.id.startsWith('apt') || text.includes('aptitude')) {
@@ -165,6 +173,16 @@ export const TodayCommandCenter: React.FC = () => {
     const countUpdate = getAgendaCountUpdate(task);
     if (!countUpdate) return;
 
+    if (countUpdate.key === 'codechefJava') {
+      updateDailyCodingTask(selectedDay, 'codechef_java_daily', { completed: true });
+      return;
+    }
+
+    if (countUpdate.key === 'skillrack') {
+      updateDailyCodingTask(selectedDay, 'skillrack_daily', { completed: true });
+      return;
+    }
+
     const latestLog = useCareerStore.getState().dailyLogs[selectedDay] || currentLog;
     const latestCounts = latestLog.counts || currentCounts;
     updateDailyLog(selectedDay, {
@@ -177,28 +195,24 @@ export const TodayCommandCenter: React.FC = () => {
 
   // 4. Checklists & completions
   const minDayQualified = useMemo(() => {
-    const lcSolved = currentLog.lcStatus?.length || 0;
-    const skillrack = currentCounts.skillrack || 0;
     const aptitude = currentCounts.aptitude || 0;
     const sql = currentCounts.sql || 0;
     const cs = currentCounts.cscore || 0;
 
-    const hasCoding = skillrack >= 5 || lcSolved >= 1 || (currentCounts.leetcode || 0) >= 1;
+    const hasCoding = getDailyCodingCompletion(dailyCoding);
     const hasApt = aptitude >= 20;
     const hasSqlOrCs = sql >= 1 || cs >= 1;
 
     return hasCoding && hasApt && hasSqlOrCs;
-  }, [currentLog, currentCounts]);
+  }, [dailyCoding, currentCounts]);
 
   const perfectDayQualified = useMemo(() => {
-    const lcSolved = currentLog.lcStatus?.length || 0;
-    const skillrack = currentCounts.skillrack || 0;
     const aptitude = currentCounts.aptitude || 0;
     const sql = currentCounts.sql || 0;
     const cs = currentCounts.cscore || 0;
 
-    return lcSolved >= 2 && skillrack >= 10 && aptitude >= 30 && sql >= 5 && cs >= 1;
-  }, [currentLog, currentCounts]);
+    return getDailyCodingCompletion(dailyCoding) && aptitude >= 30 && sql >= 5 && cs >= 1;
+  }, [dailyCoding, currentCounts]);
 
   // XP goal tracking
   const currentXPProgress = currentLog.xpEarned || 0;
@@ -532,6 +546,8 @@ export const TodayCommandCenter: React.FC = () => {
         {/* Right Column: Daily Target Checklists, Focus controls, Reflections, and Save Day */}
         <div className="flex flex-col gap-6">
           {/* Target checklist qualifications */}
+          <DailyCodingTargetPanel compact />
+
           <Card className="p-4 border-white/5 bg-[#0a0a1a] flex flex-col gap-3">
             <h4 className="text-xs font-black text-textPrimary uppercase tracking-wider border-b border-white/5 pb-2">Daily Quests Status</h4>
             <div className="flex flex-col gap-1.5 border-b border-white/5 pb-2 mb-1">

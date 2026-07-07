@@ -3,11 +3,12 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { useCareerStore } from '../../app/store/useCareerStore';
 import { useDailyLogStore } from '../../app/store/useDailyLogStore';
-import { ROADMAP } from '../../data/roadmap';
 import { CS_SUBJECTS } from '../../data/csSubjects';
 import { Sparkles, Trophy, CheckCircle } from 'lucide-react';
 import { playXPDing } from '../../utils/timerSounds';
 import { launchBurst } from '../../utils/confetti';
+import { getDateForDay } from '../../utils/dateUtils';
+import { getDailyCodingCompletion, normalizeDailyCodingState, toLocalDateKey } from '../../utils/dailyCodingUtils';
 
 interface Quest {
   id: string;
@@ -21,8 +22,8 @@ interface Quest {
 export const DailyQuestsCard: React.FC = () => {
   const selectedDay = useDailyLogStore((s) => s.selectedDay);
   const dailyLogs = useCareerStore((s) => s.dailyLogs);
-  const problemLogs = useCareerStore((s) => s.problemLogs);
   const csCoreProgress = useCareerStore((s) => s.csCoreProgress || {});
+  const userProfile = useCareerStore((s) => s.userProfile);
   const updateDailyLog = useCareerStore((s) => s.updateDailyLog);
   const awardXP = useCareerStore((s) => s.awardXP);
 
@@ -36,8 +37,11 @@ export const DailyQuestsCard: React.FC = () => {
   };
 
   const currentCounts = currentLog.counts || {};
-  const todayLC = currentLog.lcStatus?.length || 0;
   const claimedQuests = currentLog.questsClaimed || [];
+  const dateKey = toLocalDateKey(getDateForDay(selectedDay, userProfile.startDate));
+  const dailyCoding = normalizeDailyCodingState(currentLog as any, dateKey);
+  const todayLC = 0;
+  const hasMediumOrHardSolved = () => false;
 
   // Determine CS Topic status
   const getCSCoreTargetForDay = (day: number) => {
@@ -51,21 +55,20 @@ export const DailyQuestsCard: React.FC = () => {
   const csTarget = getCSCoreTargetForDay(selectedDay);
   const topicProgress = csCoreProgress[csTarget.subjectId]?.[csTarget.topicName] || { completed: false };
 
-  // Helper: check if any Medium/Hard solved today
-  const hasMediumOrHardSolved = () => {
-    const roadmapProblems = ROADMAP[String(selectedDay)] || [];
-    return roadmapProblems.some((_, idx) => {
-      const key = `d_${selectedDay}_${idx}`;
-      const solved = problemLogs[key]?.solved;
-      return solved;
-    });
-  };
-
   // Generate Quests
   const quests: Quest[] = [];
 
+  quests.push({
+    id: 'q_daily_coding',
+    title: 'Daily Coding Target',
+    description: 'Complete CodeChef Java and SkillRack daily targets',
+    targetStr: '5 + 5 problems',
+    progressStr: `${dailyCoding.tasks.codechef_java_daily.count}/5 CodeChef, ${dailyCoding.tasks.skillrack_daily.count}/5 SkillRack`,
+    isCompleted: getDailyCodingCompletion(dailyCoding)
+  });
+
   // Quest 1: DSA focus
-  if (selectedDay % 3 === 0) {
+  if (false) {
     quests.push({
       id: 'q_dsa_mh',
       title: '🕷️ Web Crawler Challenge',
@@ -74,7 +77,7 @@ export const DailyQuestsCard: React.FC = () => {
       progressStr: hasMediumOrHardSolved() ? '1/1' : '0/1',
       isCompleted: hasMediumOrHardSolved()
     });
-  } else if (selectedDay % 3 === 1) {
+  } else if (false) {
     quests.push({
       id: 'q_dsa_1',
       title: '🕷️ Web Patrol Action',
@@ -83,7 +86,7 @@ export const DailyQuestsCard: React.FC = () => {
       progressStr: `${todayLC}/1`,
       isCompleted: todayLC >= 1
     });
-  } else {
+  } else if (false) {
     quests.push({
       id: 'q_dsa_2',
       title: '🕷️ Spider-Verse Combo',
@@ -120,10 +123,10 @@ export const DailyQuestsCard: React.FC = () => {
     quests.push({
       id: 'q_place_sr',
       title: '⚡ SkillRack Overdrive',
-      description: 'Log 10 or more SkillRack challenges solved today',
-      targetStr: '10 problems',
-      progressStr: `${srCount}/10`,
-      isCompleted: srCount >= 10
+      description: 'Log 5 or more SkillRack challenges solved today',
+      targetStr: '5 problems',
+      progressStr: `${srCount}/5`,
+      isCompleted: srCount >= 5
     });
   }
 

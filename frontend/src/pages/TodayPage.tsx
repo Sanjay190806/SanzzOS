@@ -8,6 +8,7 @@ import { DailyActivityCounter } from '../components/today/DailyActivityCounter';
 import { MoodEnergyPanel } from '../components/today/MoodEnergyPanel';
 import { DailyReflection } from '../components/today/DailyReflection';
 import { SaveDayButton } from '../components/today/SaveDayButton';
+import { DailyCodingTargetPanel } from '../components/today/DailyCodingTargetPanel';
 import { PomodoroTimer } from '../components/timer/PomodoroTimer';
 import { DailyQuestsCard } from '../components/today/DailyQuestsCard';
 import { Card } from '../components/ui/Card';
@@ -26,6 +27,8 @@ import { MiniStreakStrip } from '../components/ui/MiniStreakStrip';
 import { TodayCommandCenter } from '../components/today/TodayCommandCenter';
 import { getNextAction } from '../utils/applicationCrmUtils';
 import { getStreak } from '../utils/xpUtils';
+import { getDateForDay } from '../utils/dateUtils';
+import { normalizeDailyCodingState, toLocalDateKey } from '../utils/dailyCodingUtils';
 import { launchConfetti } from '../utils/confetti';
 import { playAchievementFanfare, playXPDing } from '../utils/timerSounds';
 
@@ -100,8 +103,10 @@ export const TodayPage: React.FC = () => {
   const dailyLogs = useCareerStore((s) => s.dailyLogs);
   const problemLogs = useCareerStore((s) => s.problemLogs);
   const applications = useCareerStore((s) => s.applications);
+  const userProfile = useCareerStore((s) => s.userProfile);
   const csCoreProgress = useCareerStore((s) => s.csCoreProgress || {});
   const updateDailyLog = useCareerStore((s) => s.updateDailyLog);
+  const updateDailyCodingTask = useCareerStore((s) => s.updateDailyCodingTask);
   const updateProblemLog = useCareerStore((s) => s.updateProblemLog);
   const updateCSCoreTopic = useCareerStore((s) => s.updateCSCoreTopic);
   const queuePrompt = useAIStore((s) => s.queuePrompt);
@@ -126,6 +131,9 @@ export const TodayPage: React.FC = () => {
 
   const currentLog = dailyLogs[selectedDay] || { ...DEFAULT_LOG, savedAt: new Date().toISOString() };
   const currentCounts = currentLog.counts || DEFAULT_COUNTS;
+  const selectedDateKey = toLocalDateKey(getDateForDay(selectedDay, userProfile.startDate));
+  const dailyCoding = normalizeDailyCodingState(currentLog, selectedDateKey);
+  const leetcodeActive = dailyCoding.tasks.leetcode_daily.active;
   const currentProblems = ROADMAP[String(selectedDay)] || [];
   const applicationAction = applications
     .map((app) => ({ app, action: getNextAction(app) }))
@@ -186,6 +194,10 @@ export const TodayPage: React.FC = () => {
         leetcode: newLeetcodeCount
       }
     });
+
+    if (leetcodeActive) {
+      updateDailyCodingTask(selectedDay, 'leetcode_daily', { count: newLeetcodeCount });
+    }
   };
 
   const handleConfidenceChange = (probIdx: number, val: number) => {
@@ -386,8 +398,20 @@ export const TodayPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
           {/* LeetCode task checklist */}
           <div className="lg:col-span-2 flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-textPrimary uppercase tracking-wider pl-1">LeetCode Challenges</h3>
-            {currentProblems.length === 0 ? (
+            <DailyCodingTargetPanel />
+
+            <h3 className="text-sm font-bold text-textPrimary uppercase tracking-wider pl-1 mt-4">LeetCode Challenges</h3>
+            {!leetcodeActive ? (
+              <Card className="border-white/5 bg-white/[0.01] p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-textMuted">Scheduled from Aug 1, 2026</p>
+                    <h4 className="mt-1 text-sm font-semibold text-textPrimary">LeetCode starts Aug 1</h4>
+                  </div>
+                  <Badge variant="neutral">Inactive Today</Badge>
+                </div>
+              </Card>
+            ) : currentProblems.length === 0 ? (
               <div className="glass-card p-6 text-center text-textSecondary text-xs">
                 No specific LeetCode problems scheduled for Day {selectedDay}. Rest/recovery focus study day.
               </div>
@@ -506,16 +530,6 @@ export const TodayPage: React.FC = () => {
             {/* Activity counters grid */}
             <h3 className="text-sm font-bold text-textPrimary uppercase tracking-wider pl-1 mt-4">Placement Prep Schedules</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
-              <DailyActivityCounter
-                label="SkillRack"
-                emoji="⚡"
-                value={currentCounts.skillrack || 0}
-                target={10}
-                unit="problems"
-                color="#3B82F6"
-                onIncrement={() => updateCount('skillrack', 'inc')}
-                onDecrement={() => updateCount('skillrack', 'dec')}
-              />
               <DailyActivityCounter
                 label="Aptitude"
                 emoji="🧮"

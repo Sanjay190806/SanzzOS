@@ -7,6 +7,8 @@ import { Button } from '../components/ui/Button';
 import { DSAProblemIntelligencePanel } from '../components/dsa/DSAProblemIntelligencePanel';
 import { useCareerStore } from '../app/store/useCareerStore';
 import { getTotalLCSolved } from '../utils/xpUtils';
+import { getDateForDay } from '../utils/dateUtils';
+import { normalizeDailyCodingState, OFFICIAL_DSA_START_DATE, toLocalDateKey } from '../utils/dailyCodingUtils';
 import { ROADMAP } from '../data/roadmap';
 import {
   DSA_PATTERNS,
@@ -24,6 +26,11 @@ export const DSATrackerPage: React.FC = () => {
   const updateProblemLog = useCareerStore((s) => s.updateProblemLog);
 
   const lcSolved = getTotalLCSolved(careerState);
+  const activeDsaXp = Object.entries(careerState.dailyLogs || {}).reduce((sum, [dayKey, log]) => {
+    const day = Number(dayKey);
+    const dateKey = Number.isFinite(day) ? toLocalDateKey(getDateForDay(day, careerState.userProfile.startDate)) : toLocalDateKey(new Date());
+    return sum + normalizeDailyCodingState(log, dateKey).activeDsaXp;
+  }, 0);
   
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -181,8 +188,13 @@ export const DSATrackerPage: React.FC = () => {
         />
 
         {/* Global Stats Summary Banner */}
-        <Card className="grid gap-4 border-white/5 bg-black/60 p-5 md:grid-cols-3"
+        <Card className="grid gap-4 border-white/5 bg-black/60 p-5 md:grid-cols-4"
           style={{ border: '1px solid rgba(220,38,38,0.18)', background: 'rgba(20,0,5,0.85)' }}>
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-textMuted font-mono">Active DSA XP</p>
+            <h3 className="mt-1 text-sm font-semibold text-textPrimary">{activeDsaXp} XP</h3>
+            <p className="mt-1 text-[10px] text-textMuted">Official start: {OFFICIAL_DSA_START_DATE}</p>
+          </div>
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-textMuted font-mono">Curriculum Solved</p>
             <h3 className="mt-1 text-sm font-semibold text-textPrimary">{lcSolved} Problems completed</h3>

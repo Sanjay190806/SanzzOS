@@ -17,7 +17,7 @@ const smartPlanner = readFileSync(join(root, 'src/services/smartPlannerService.t
 test('career store starts with empty real-data defaults', () => {
   assert.match(careerStore, /projects: \{\}/);
   assert.match(careerStore, /atsScore: 0/);
-  assert.match(careerStore, /version: 142/);
+  assert.match(careerStore, /version: 143/);
   assert.doesNotMatch(careerStore, /atsScore: 70/);
 });
 

@@ -1,4 +1,6 @@
 import { logMigration } from '../../utils/stateMigrationUtils';
+import { normalizeDailyCodingState, toLocalDateKey } from '../../utils/dailyCodingUtils';
+import { getDateForDay } from '../../utils/dateUtils';
 
 function resetSeededCareerDefaults(state: any) {
   const seededProjectNames = ['CareSync AI', 'SmartEdu AI', 'Sanju Career OS'];
@@ -47,6 +49,44 @@ function resetSeededCareerDefaults(state: any) {
     next.badges = [];
     next.unlockedBadges = {};
   }
+
+  return next;
+}
+
+function migrateDailyCodingState(state: any) {
+  const next = { ...state };
+  const dailyLogs = next.dailyLogs && typeof next.dailyLogs === 'object' ? next.dailyLogs : {};
+  const startDate = next.userProfile?.startDate || '2026-07-01';
+
+  next.dailyLogs = Object.entries(dailyLogs).reduce((acc: Record<string, any>, [dayKey, rawLog]) => {
+    const day = Number(dayKey);
+    const dateKey = Number.isFinite(day) ? toLocalDateKey(getDateForDay(day, startDate)) : toLocalDateKey(new Date());
+    const log = rawLog && typeof rawLog === 'object' ? rawLog as any : {};
+    const dailyCoding = normalizeDailyCodingState(log, dateKey);
+    const nextCounts = {
+      leetcode: 0,
+      skillrack: 0,
+      aptitude: 0,
+      sql: 0,
+      cscore: 0,
+      german: 0,
+      project: 0,
+      resume: 0,
+      ...(log.counts || {})
+    };
+
+    acc[dayKey] = {
+      ...log,
+      counts: {
+        ...nextCounts,
+        codechefJava: dailyCoding.tasks.codechef_java_daily.count,
+        skillrack: dailyCoding.tasks.skillrack_daily.count,
+        leetcode: dailyCoding.tasks.leetcode_daily.count
+      },
+      dailyCoding
+    };
+    return acc;
+  }, {});
 
   return next;
 }
@@ -126,7 +166,8 @@ export function runMigrationForStore(storeName: string, state: any, version: num
         ...migrated
       };
       migrated = resetSeededCareerDefaults(migrated);
-      notes = 'Merged placement execution targets defaults and removed seeded demo career data';
+      migrated = migrateDailyCodingState(migrated);
+      notes = 'Merged placement execution targets defaults, removed seeded demo career data, and normalized daily coding tasks';
     } else if (storeName === 'sanzz_os_calendar_events_v1') {
       migrated = {
         events: [],
