@@ -12,5 +12,19 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'charts': ['recharts'],
+          'ui-icons': ['lucide-react'],
+          'state': ['zustand'],
+          'animations': ['framer-motion'],
+          'pdf-tesseract': ['pdfjs-dist', 'tesseract.js']
+        }
+      }
+    }
   }
 });
