@@ -288,7 +288,7 @@ export const useCareerStore = create<CareerState>()(
       
       updateDailyLog: (day, log) => set((state) => {
         const existingLog = state.dailyLogs[day] || {
-          counts: { leetcode: 0, skillrack: 0, aptitude: 0, sql: 0, cscore: 0, german: 0, project: 0, resume: 0 },
+          counts: { leetcode: 0, skillrack: 0, codechefJava: 0, aptitude: 0, sql: 0, cscore: 0, german: 0, project: 0, resume: 0 },
           lcStatus: [],
           note: '',
           mood: 3,
@@ -805,7 +805,7 @@ export const useCareerStore = create<CareerState>()(
         const weekKey = getWeekKey(dateObj);
         const nextWeeklyFreeze = { ...(state.weeklyFreezeUsage || {}), [weekKey]: true };
         const log = state.dailyLogs[day] || {
-          counts: { leetcode: 0, skillrack: 0, aptitude: 0, sql: 0, cscore: 0, german: 0, project: 0, resume: 0 },
+          counts: { leetcode: 0, skillrack: 0, codechefJava: 0, aptitude: 0, sql: 0, cscore: 0, german: 0, project: 0, resume: 0 },
           lcStatus: [],
           note: '',
           mood: 3,

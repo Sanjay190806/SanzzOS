@@ -1,6 +1,7 @@
 export interface ActivityCounts {
   leetcode: number;
   skillrack: number;
+  codechefJava?: number;
   aptitude: number;
   sql: number;
   cscore: number;

@@ -127,6 +127,7 @@ export const TodayPage: React.FC = () => {
   const currentLog = dailyLogs[selectedDay] || { ...DEFAULT_LOG, savedAt: new Date().toISOString() };
   const currentCounts = currentLog.counts || DEFAULT_COUNTS;
   const currentProblems = ROADMAP[String(selectedDay)] || [];
+  const leetcodeActive = new Date() >= new Date('2026-08-01T00:00:00');
   const applicationAction = applications
     .map((app) => ({ app, action: getNextAction(app) }))
     .sort((a, b) => {
@@ -386,29 +387,78 @@ export const TodayPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
           {/* LeetCode task checklist */}
           <div className="lg:col-span-2 flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-textPrimary uppercase tracking-wider pl-1">LeetCode Challenges</h3>
-            {currentProblems.length === 0 ? (
-              <div className="glass-card p-6 text-center text-textSecondary text-xs">
-                No specific LeetCode problems scheduled for Day {selectedDay}. Rest/recovery focus study day.
+            <Card className="border-white/5 bg-black/45 p-4 md:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/5 pb-4">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2 text-amber-300">
+                    <span className="text-sm font-black">LC</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-textMuted">LeetCode Challenges</p>
+                    <h3 className="mt-1 text-base font-semibold text-textPrimary">
+                      {leetcodeActive ? 'Problem board' : 'LeetCode starts Aug 1'}
+                    </h3>
+                    <p className="mt-1 text-xs text-textSecondary">
+                      {leetcodeActive
+                        ? 'Official DSA mode is live and counts toward the daily streak.'
+                        : 'Before Aug 1 it stays out of today’s coding completion and official DSA streak.'}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={leetcodeActive ? 'success' : 'neutral'}>
+                  {leetcodeActive ? 'Official DSA active' : 'Scheduled from Aug 1, 2026'}
+                </Badge>
               </div>
-            ) : (
-              currentProblems.map((prob, index) => {
-                const probLog = getProblemLog(index);
-                return (
-                  <LeetCodeTaskCard
-                    key={index}
-                    problem={prob}
-                    problemIndex={index}
-                    solved={probLog.solved}
-                    confidence={probLog.confidence}
-                    notes={probLog.notes}
-                    onSolvedChange={(val) => handleSolvedChange(index, val)}
-                    onConfidenceChange={(val) => handleConfidenceChange(index, val)}
-                    onNotesChange={(val) => handleNotesChange(index, val)}
-                  />
-                );
-              })
-            )}
+
+              {leetcodeActive ? (
+                <>
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-textMuted">
+                    <span className="rounded-full border border-white/5 bg-white/[0.03] px-3 py-1">
+                      {currentProblems.length} problems
+                    </span>
+                    <span className="rounded-full border border-white/5 bg-white/[0.03] px-3 py-1">
+                      Counts for official DSA
+                    </span>
+                  </div>
+
+                  <div className="mt-4 flex flex-col gap-3">
+                    {currentProblems.length === 0 ? (
+                      <div className="rounded-2xl border border-white/5 bg-black/25 p-5 text-center text-xs text-textSecondary">
+                        No specific LeetCode problems scheduled for Day {selectedDay}. Rest and recovery day.
+                      </div>
+                    ) : (
+                      currentProblems.map((prob, index) => {
+                        const probLog = getProblemLog(index);
+                        return (
+                          <LeetCodeTaskCard
+                            key={index}
+                            problem={prob}
+                            problemIndex={index}
+                            solved={probLog.solved}
+                            confidence={probLog.confidence}
+                            notes={probLog.notes}
+                            onSolvedChange={(val) => handleSolvedChange(index, val)}
+                            onConfidenceChange={(val) => handleConfidenceChange(index, val)}
+                            onNotesChange={(val) => handleNotesChange(index, val)}
+                          />
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-white/5 bg-black/25 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-textMuted">Scheduled from Aug 1, 2026</p>
+                      <h4 className="mt-1 text-sm font-semibold text-textPrimary">LeetCode starts Aug 1</h4>
+                      <p className="mt-1 text-xs text-textSecondary">The problem list stays hidden until the official DSA start date.</p>
+                    </div>
+                    <Badge variant="neutral">Inactive Today</Badge>
+                  </div>
+                </div>
+              )}
+            </Card>
 
             {/* CS Core Daily Target Card */}
             <h3 className="text-sm font-bold text-textPrimary uppercase tracking-wider pl-1 mt-4">CS Core Mission</h3>
@@ -506,6 +556,16 @@ export const TodayPage: React.FC = () => {
             {/* Activity counters grid */}
             <h3 className="text-sm font-bold text-textPrimary uppercase tracking-wider pl-1 mt-4">Placement Prep Schedules</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+              <DailyActivityCounter
+                label="CodeChef Java"
+                emoji="CJ"
+                value={currentCounts.codechefJava || 0}
+                target={5}
+                unit="problems"
+                color="#F97316"
+                onIncrement={() => updateCount('codechefJava', 'inc')}
+                onDecrement={() => updateCount('codechefJava', 'dec')}
+              />
               <DailyActivityCounter
                 label="SkillRack"
                 emoji="⚡"
